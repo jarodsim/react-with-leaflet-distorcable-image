@@ -1,116 +1,70 @@
-import { MapContainer, TileLayer, useMap } from "react-leaflet";
+import { MapContainer, TileLayer, useMap, useMapEvents } from "react-leaflet";
 import "./App.css";
 import "leaflet/dist/leaflet.css";
-import drone from "./drone.png";
 import DistortableImageOverlay from "./DistorceableImage";
 import { useCallback, useState } from "react";
 import L from "leaflet";
+import { defaultActions } from "./contants";
 
 function App() {
   const [center, _] = useState([-6.789272, -43.045765]);
-  const [images, setImagens] = useState([
-    {
-      url: drone,
-      name: "drone",
-      bounds: null,
-    },
-  ]);
+  const [images, setImages] = useState(null);
   const [newImageLocation, setNewImageLocation] = useState(null);
   const [enableOnMapClick, setEnableOnMapClick] = useState(false);
+  const [newImageCoorners, setNewImageCoorners] = useState(null);
 
   const addImage = useCallback(() => {
-    const defaultActions = [
-      {
-        name: "L.DragAction",
-        class: L.DragAction,
-      },
-      {
-        name: "L.ScaleAction",
-        class: L.ScaleAction,
-      },
-      {
-        name: "L.DistortAction",
-        class: L.DistortAction,
-      },
-      {
-        name: "L.RotateAction",
-        class: L.RotateAction,
-      },
-      {
-        name: "L.FreeRotateAction",
-        class: L.FreeRotateAction,
-      },
-      {
-        name: "L.LockAction",
-        class: L.LockAction,
-      },
-      {
-        name: "L.OpacityAction",
-        class: L.OpacityAction,
-      },
-      {
-        name: "L.BorderAction",
-        class: L.BorderAction,
-      },
-      {
-        name: "L.ExportAction",
-        class: L.ExportAction,
-      },
-      {
-        name: "L.DeleteAction",
-        class: L.DeleteAction,
-      },
-      {
-        name: "L.RestoreAction",
-        class: L.RestoreAction,
-      },
-    ]
-
     const url = document.getElementById("url").value;
     const name = document.getElementById("name").value;
 
     if (!url || !name) {
       alert("Preencha os campos de url e nome");
+      return
     }
-
-    const actions = document.querySelectorAll("input[name='actions[]']:checked");
+    const allSelected = document.querySelector("input[name='actions[]-all']:checked");
 
     const actionsArray = [];
 
-    actions.forEach(action => {
-      const actionName = action.value;
-      const actionClass = defaultActions.find(action => action.name === actionName).class;
-      actionsArray.push(actionClass);
+    if (allSelected) {
+      actionsArray.push(...defaultActions.map((action) => action.class));
+    } else {
+      const actions = document.querySelectorAll("input[name='actions[]']:checked");
+      actions.forEach(action => {
+        const actionName = action.value;
+        const actionClass = defaultActions.find(action => action.name === actionName).class;
+        actionsArray.push(actionClass);
+      })
+    }
+
+    const image = L.distortableImageOverlay(url, {
+      actions: actionsArray,
+      corners: [
+        L.latLng(-6.787711, -43.046406),
+        L.latLng(-6.789225, -43.046651),
+        L.latLng(-6.788399, -43.044928),
+        L.latLng(-6.789679, -43.045362),
+      ],
     })
 
-    setImagens([
-      ...images,
-      {
-        url,
-        name,
-        bounds: null,
-        actions: actionsArray,
-      },
-    ]);
+
+
+    if (images) {
+      setImages((prev) => [...prev, image]);
+    } else {
+      setImages([image]);
+    }
   }, [images]);
 
+  function LocationMarker() {
+    useMapEvents({
+      click(e) {
+        setNewImageLocation(e.latlng)
+      },
 
-  function HandleMapClick() {
-    const map = useMap();
-
-    map.whenReady(() => {
-      // pega a localização do click no mapa
-      map.on("click", (e) => {
-        if (enableOnMapClick) {
-          setNewImageLocation(e.latlng);
-        }
-      })
     })
 
-    return null;
+    return null
   }
-
-  console.log({ images })
 
   return (
     <div style={{
@@ -126,16 +80,13 @@ function App() {
           attribution='&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
           url="https://1.aerial.maps.ls.hereapi.com/maptile/2.1/maptile/newest/satellite.day/{z}/{x}/{y}/256/png8?app_id=Xf717WLh23vibGrY2VdK&app_code=onhDRdp6818gjOCVn925eg"
         />
-        {images.map((image, index) => (
+        {images && (
           <DistortableImageOverlay
-            mapCenter={center}
-            imageUrl={image.url}
-            key={index}
-            actions={image.actions}
+            images={images}
           />
-        ))}
+        )}
 
-        <HandleMapClick />
+        {enableOnMapClick && <LocationMarker />}
       </MapContainer>
       <div
         style={{
@@ -151,6 +102,7 @@ function App() {
         <p>name</p>
         <input type="text" name="name" id="name" />
         <p>ações</p>
+        <label><input type="checkbox" name="actions[]-all" value="L.DragAction" /> Todos</label>
         <label><input type="checkbox" name="actions[]" value="L.DragAction" /> L.DragAction</label>
         <label><input type="checkbox" name="actions[]" value="L.ScaleAction" /> L.ScaleAction</label>
         <label><input type="checkbox" name="actions[]" value="L.DistortAction" /> L.DistortAction</label>
@@ -163,14 +115,19 @@ function App() {
         <label><input type="checkbox" name="actions[]" value="L.DeleteAction" /> L.DeleteAction</label>
         <label><input type="checkbox" name="actions[]" value="L.RestoreAction" /> L.RestoreAction</label>
         <br />
-        {/* <button onClick={() => {
+        <button onClick={() => {
           setEnableOnMapClick((prev) => !prev)
         }}>Selecionar localização da imagem no mapa - {enableOnMapClick ? 'ativo' : 'inativo'}</button>
         {newImageLocation && (
           <small>localização da nova imagem: {newImageLocation.lat}, {newImageLocation.lng}</small>
         )}
-        <br /><br /> */}
-        <button onClick={addImage}>Adicionar</button>
+        <br /><br />
+
+        <hr style={{
+          width: "100%",
+        }} />
+
+        <button onClick={addImage} disabled={!newImageCoorners}>Adicionar</button>
       </div>
     </div>
   );

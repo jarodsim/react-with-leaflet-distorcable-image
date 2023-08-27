@@ -9,25 +9,19 @@ import "leaflet/dist/leaflet.css";
 import { useEffect } from "react";
 
 export default function DistortableImageOverlay({
-    mapCenter,
-    imageUrl,
-    actions
+    images
 }) {
     const map = useMap();
-
+    console.log({images})
     useEffect(() => {
         map.whenReady(() => {
-            const imagem = L.distortableImageOverlay(imageUrl, { actions }).addTo(map);
+            const imgGroup = L.distortableCollection()
+            images.forEach(image => {
+                imgGroup.addLayer(image);
+            })
 
-            map.addGoogleMutant();
-
-            map.doubleClickZoom.disable();
-
-
-            return () => {
-                imagem.removeFrom(map);
-            };
+            imgGroup.addTo(map)
         })
-    }, [actions, imageUrl, map, mapCenter])
+    }, [images, map])
     return null;
 }
