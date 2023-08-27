@@ -11,21 +11,23 @@ import { useEffect } from "react";
 export default function DistortableImageOverlay({
     mapCenter,
     imageUrl,
+    actions
 }) {
     const map = useMap();
 
     useEffect(() => {
-        const layer = L.distortableImageOverlay(imageUrl, {}).addTo(map);
+        map.whenReady(() => {
+            const imagem = L.distortableImageOverlay(imageUrl, { actions }).addTo(map);
 
-        map.doubleClickZoom.disable();
+            map.addGoogleMutant();
 
-        return () => {
-            if (map.getPane(layer)) {
-                map.removeLayer(layer);
-                map.setView(mapCenter);
-            }
-        };
-    }, [map]);
+            map.doubleClickZoom.disable();
 
+
+            return () => {
+                imagem.removeFrom(map);
+            };
+        })
+    }, [actions, imageUrl, map, mapCenter])
     return null;
 }
