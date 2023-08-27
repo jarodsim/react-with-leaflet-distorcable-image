@@ -5,19 +5,18 @@ import DistortableImageOverlay from "./DistorceableImage";
 import { useCallback, useState } from "react";
 import L from "leaflet";
 import { defaultActions } from "./contants";
-import { convertToLeafletLatLngArray, orderCornersClockwise } from "./utils";
 
 function App() {
   const [center, _] = useState([-6.789272, -43.045765]);
   const [images, setImages] = useState(null);
   const [enableOnMapClick, setEnableOnMapClick] = useState(false);
   const [newImageCoorners, setNewImageCoorners] = useState(null);
+  const [showActualImageCoorners, setShowActualImageCoorners] = useState(false);
 
   const addImage = useCallback(() => {
     const url = document.getElementById("url").value;
-    const name = document.getElementById("name").value;
 
-    if (!url || !name) {
+    if (!url) {
       alert("Preencha os campos de url e nome");
       return;
     }
@@ -41,7 +40,7 @@ function App() {
         actionsArray.push(actionClass);
       });
     }
-    
+
     const image = L.distortableImageOverlay(url, {
       actions: actionsArray,
       corners: [
@@ -113,8 +112,6 @@ function App() {
         <h3>Adicionar imagem</h3>
         <p>url</p>
         <input type="url" name="url" id="url" />
-        <p>name</p>
-        <input type="text" name="name" id="name" />
         <p>ações</p>
         <label>
           <input type="checkbox" name="actions[]-all" value="L.DragAction" />{" "}
@@ -203,6 +200,24 @@ function App() {
         >
           Adicionar
         </button>
+
+        <hr
+          style={{
+            width: "100%",
+          }}
+        />
+        <br />
+        <button onClick={() => {
+          setShowActualImageCoorners(prev => !prev);
+        }}>Exibir  novas posições das imagens</button>
+        {showActualImageCoorners && <pre>
+          <code>{images && JSON.stringify(images.map(image => {
+            return {
+              url: image._url,
+              corners: image.getCorners()
+            }
+          }), null, 2)}</code>
+        </pre>}
       </div>
     </div>
   );

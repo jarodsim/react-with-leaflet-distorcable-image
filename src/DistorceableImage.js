@@ -12,7 +12,6 @@ export default function DistortableImageOverlay({
     images
 }) {
     const map = useMap();
-    console.log({images})
     useEffect(() => {
         map.whenReady(() => {
             const imgGroup = L.distortableCollection()
