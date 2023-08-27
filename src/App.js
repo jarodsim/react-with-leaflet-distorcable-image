@@ -5,7 +5,7 @@ import DistortableImageOverlay from "./DistorceableImage";
 import { useCallback, useState } from "react";
 import L from "leaflet";
 import { defaultActions } from "./contants";
-import { orderCornersClockwise } from "./utils";
+import { convertToLeafletLatLngArray, orderCornersClockwise } from "./utils";
 
 function App() {
   const [center, _] = useState([-6.789272, -43.045765]);
@@ -41,10 +41,15 @@ function App() {
         actionsArray.push(actionClass);
       });
     }
-
+    
     const image = L.distortableImageOverlay(url, {
       actions: actionsArray,
-      corners: orderCornersClockwise(newImageCoorners),
+      corners: [
+        newImageCoorners[2],
+        newImageCoorners[3],
+        newImageCoorners[1],
+        newImageCoorners[0],
+      ],
     });
 
     if (images) {
@@ -54,6 +59,7 @@ function App() {
     }
 
     setNewImageCoorners(null);
+    setEnableOnMapClick(false);
   }, [images, newImageCoorners]);
 
   function LocationMarker() {
@@ -92,7 +98,9 @@ function App() {
         {images && <DistortableImageOverlay images={images} />}
 
         {enableOnMapClick && <LocationMarker />}
-        {newImageCoorners && newImageCoorners.length > 0 && newImageCoorners.map((nc) => <Marker position={nc}></Marker>)}
+        {newImageCoorners &&
+          newImageCoorners.length > 0 &&
+          newImageCoorners.map((nc) => <Marker position={nc}></Marker>)}
       </MapContainer>
       <div
         style={{
