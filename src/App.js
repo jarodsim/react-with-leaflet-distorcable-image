@@ -2,7 +2,7 @@ import { MapContainer, Marker, TileLayer, useMapEvents } from "react-leaflet";
 import "./App.css";
 import "leaflet/dist/leaflet.css";
 import DistortableImageOverlay from "./DistorceableImage";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import L from "leaflet";
 import { defaultActions } from "./contants";
 
@@ -77,6 +77,26 @@ function App() {
 
     return null;
   }
+
+
+
+  useEffect(() => {
+    if (!images) {
+      const image = L.distortableImageOverlay('https://img.icons8.com/?size=512&id=qoqMqJIcwz6V&format=png', {
+        actions: defaultActions.map((action) => action.class),
+        corners: [
+          [-6.789244114610039, -43.04664373397827],
+          [- 6.789638297738738, -43.0453884601593],
+          [- 6.7880136219556775, -43.04614484310151],
+          [- 6.7883492111733945, -43.044970035552986]
+        ],
+      });
+      setImages(
+        [image]
+      )
+    }
+
+  }, [images])
 
   return (
     <div
