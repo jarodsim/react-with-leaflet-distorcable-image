@@ -1,15 +1,15 @@
-import { MapContainer, TileLayer, useMap, useMapEvents } from "react-leaflet";
+import { MapContainer, Marker, TileLayer, useMapEvents } from "react-leaflet";
 import "./App.css";
 import "leaflet/dist/leaflet.css";
 import DistortableImageOverlay from "./DistorceableImage";
 import { useCallback, useState } from "react";
 import L from "leaflet";
 import { defaultActions } from "./contants";
+import { orderCornersClockwise } from "./utils";
 
 function App() {
   const [center, _] = useState([-6.789272, -43.045765]);
   const [images, setImages] = useState(null);
-  const [newImageLocation, setNewImageLocation] = useState(null);
   const [enableOnMapClick, setEnableOnMapClick] = useState(false);
   const [newImageCoorners, setNewImageCoorners] = useState(null);
 
@@ -19,57 +19,66 @@ function App() {
 
     if (!url || !name) {
       alert("Preencha os campos de url e nome");
-      return
+      return;
     }
-    const allSelected = document.querySelector("input[name='actions[]-all']:checked");
+    const allSelected = document.querySelector(
+      "input[name='actions[]-all']:checked"
+    );
 
     const actionsArray = [];
 
     if (allSelected) {
       actionsArray.push(...defaultActions.map((action) => action.class));
     } else {
-      const actions = document.querySelectorAll("input[name='actions[]']:checked");
-      actions.forEach(action => {
+      const actions = document.querySelectorAll(
+        "input[name='actions[]']:checked"
+      );
+      actions.forEach((action) => {
         const actionName = action.value;
-        const actionClass = defaultActions.find(action => action.name === actionName).class;
+        const actionClass = defaultActions.find(
+          (action) => action.name === actionName
+        ).class;
         actionsArray.push(actionClass);
-      })
+      });
     }
 
     const image = L.distortableImageOverlay(url, {
       actions: actionsArray,
-      corners: [
-        L.latLng(-6.787711, -43.046406),
-        L.latLng(-6.789225, -43.046651),
-        L.latLng(-6.788399, -43.044928),
-        L.latLng(-6.789679, -43.045362),
-      ],
-    })
-
-
+      corners: orderCornersClockwise(newImageCoorners),
+    });
 
     if (images) {
       setImages((prev) => [...prev, image]);
     } else {
       setImages([image]);
     }
-  }, [images]);
+
+    setNewImageCoorners(null);
+  }, [images, newImageCoorners]);
 
   function LocationMarker() {
     useMapEvents({
       click(e) {
-        setNewImageLocation(e.latlng)
+        if (!newImageCoorners || newImageCoorners.length < 4) {
+          setNewImageCoorners((prevCorners) => {
+            const updatedCorners = prevCorners ? [...prevCorners] : [];
+            updatedCorners.push(e.latlng);
+
+            return updatedCorners;
+          });
+        }
       },
+    });
 
-    })
-
-    return null
+    return null;
   }
 
   return (
-    <div style={{
-      display: "flex",
-    }}>
+    <div
+      style={{
+        display: "flex",
+      }}
+    >
       <MapContainer
         center={center}
         zoom={18}
@@ -80,13 +89,10 @@ function App() {
           attribution='&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
           url="https://1.aerial.maps.ls.hereapi.com/maptile/2.1/maptile/newest/satellite.day/{z}/{x}/{y}/256/png8?app_id=Xf717WLh23vibGrY2VdK&app_code=onhDRdp6818gjOCVn925eg"
         />
-        {images && (
-          <DistortableImageOverlay
-            images={images}
-          />
-        )}
+        {images && <DistortableImageOverlay images={images} />}
 
         {enableOnMapClick && <LocationMarker />}
+        {newImageCoorners && newImageCoorners.length > 0 && newImageCoorners.map((nc) => <Marker position={nc}></Marker>)}
       </MapContainer>
       <div
         style={{
@@ -102,32 +108,93 @@ function App() {
         <p>name</p>
         <input type="text" name="name" id="name" />
         <p>ações</p>
-        <label><input type="checkbox" name="actions[]-all" value="L.DragAction" /> Todos</label>
-        <label><input type="checkbox" name="actions[]" value="L.DragAction" /> L.DragAction</label>
-        <label><input type="checkbox" name="actions[]" value="L.ScaleAction" /> L.ScaleAction</label>
-        <label><input type="checkbox" name="actions[]" value="L.DistortAction" /> L.DistortAction</label>
-        <label><input type="checkbox" name="actions[]" value="L.RotateAction" /> L.RotateAction</label>
-        <label><input type="checkbox" name="actions[]" value="L.FreeRotateAction" /> L.FreeRotateAction</label>
-        <label><input type="checkbox" name="actions[]" value="L.LockAction" /> L.LockAction</label>
-        <label><input type="checkbox" name="actions[]" value="L.OpacityAction" /> L.OpacityAction</label>
-        <label><input type="checkbox" name="actions[]" value="L.BorderAction" /> L.BorderAction</label>
-        <label><input type="checkbox" name="actions[]" value="L.ExportAction" /> L.ExportAction</label>
-        <label><input type="checkbox" name="actions[]" value="L.DeleteAction" /> L.DeleteAction</label>
-        <label><input type="checkbox" name="actions[]" value="L.RestoreAction" /> L.RestoreAction</label>
+        <label>
+          <input type="checkbox" name="actions[]-all" value="L.DragAction" />{" "}
+          Todos
+        </label>
+        <label>
+          <input type="checkbox" name="actions[]" value="L.DragAction" />{" "}
+          L.DragAction
+        </label>
+        <label>
+          <input type="checkbox" name="actions[]" value="L.ScaleAction" />{" "}
+          L.ScaleAction
+        </label>
+        <label>
+          <input type="checkbox" name="actions[]" value="L.DistortAction" />{" "}
+          L.DistortAction
+        </label>
+        <label>
+          <input type="checkbox" name="actions[]" value="L.RotateAction" />{" "}
+          L.RotateAction
+        </label>
+        <label>
+          <input type="checkbox" name="actions[]" value="L.FreeRotateAction" />{" "}
+          L.FreeRotateAction
+        </label>
+        <label>
+          <input type="checkbox" name="actions[]" value="L.LockAction" />{" "}
+          L.LockAction
+        </label>
+        <label>
+          <input type="checkbox" name="actions[]" value="L.OpacityAction" />{" "}
+          L.OpacityAction
+        </label>
+        <label>
+          <input type="checkbox" name="actions[]" value="L.BorderAction" />{" "}
+          L.BorderAction
+        </label>
+        <label>
+          <input type="checkbox" name="actions[]" value="L.ExportAction" />{" "}
+          L.ExportAction
+        </label>
+        <label>
+          <input type="checkbox" name="actions[]" value="L.DeleteAction" />{" "}
+          L.DeleteAction
+        </label>
+        <label>
+          <input type="checkbox" name="actions[]" value="L.RestoreAction" />{" "}
+          L.RestoreAction
+        </label>
         <br />
-        <button onClick={() => {
-          setEnableOnMapClick((prev) => !prev)
-        }}>Selecionar localização da imagem no mapa - {enableOnMapClick ? 'ativo' : 'inativo'}</button>
-        {newImageLocation && (
-          <small>localização da nova imagem: {newImageLocation.lat}, {newImageLocation.lng}</small>
+        <button
+          onClick={() => {
+            setEnableOnMapClick((prev) => !prev);
+          }}
+        >
+          Selecione os cantos da imagem -{" "}
+          {enableOnMapClick ? "ativo" : "inativo"}
+        </button>
+        <br />
+        <br />
+
+        <hr
+          style={{
+            width: "100%",
+          }}
+        />
+
+        {newImageCoorners && (
+          <>
+            <p>Cantos da imagem:</p>
+            {newImageCoorners.map((corner, index) => (
+              <div key={index}>
+                Canto {index + 1}: {corner.lat}, {corner.lng}
+              </div>
+            ))}
+          </>
         )}
-        <br /><br />
 
-        <hr style={{
-          width: "100%",
-        }} />
-
-        <button onClick={addImage} disabled={!newImageCoorners}>Adicionar</button>
+        <button
+          onClick={addImage}
+          disabled={
+            !newImageCoorners ||
+            !newImageCoorners.length ||
+            newImageCoorners.length < 4
+          }
+        >
+          Adicionar
+        </button>
       </div>
     </div>
   );
