@@ -9,18 +9,18 @@ import "leaflet/dist/leaflet.css";
 import { useEffect } from "react";
 
 export default function DistortableImageOverlay({
-    images
+    images,
+    groupedImages,
 }) {
     const map = useMap();
     useEffect(() => {
         map.whenReady(() => {
-            const imgGroup = L.distortableCollection()
             images.forEach(image => {
-                imgGroup.addLayer(image);
+                groupedImages.addLayer(image);
             })
 
-            imgGroup.addTo(map)
+            groupedImages.addTo(map)
         })
-    }, [images, map])
+    }, [groupedImages, images, map])
     return null;
 }

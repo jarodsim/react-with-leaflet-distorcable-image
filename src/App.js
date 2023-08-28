@@ -4,14 +4,15 @@ import "leaflet/dist/leaflet.css";
 import DistortableImageOverlay from "./DistorceableImage";
 import { useCallback, useEffect, useState } from "react";
 import L from "leaflet";
-import { defaultActions } from "./contants";
+import { checkboxTypes, defaultActions } from "./contants";
 
 function App() {
-  const [center, _] = useState([-6.789272, -43.045765]);
+  const [center] = useState([-6.789272, -43.045765]);
   const [images, setImages] = useState(null);
   const [enableOnMapClick, setEnableOnMapClick] = useState(false);
   const [newImageCoorners, setNewImageCoorners] = useState(null);
   const [showActualImageCoorners, setShowActualImageCoorners] = useState(false);
+  const [groupedImages] = useState(L.distortableCollection());
 
   const addImage = useCallback(() => {
     const url = document.getElementById("url").value;
@@ -78,25 +79,23 @@ function App() {
     return null;
   }
 
-
-
   useEffect(() => {
     if (!images) {
-      const image = L.distortableImageOverlay('https://img.icons8.com/?size=512&id=qoqMqJIcwz6V&format=png', {
-        actions: defaultActions.map((action) => action.class),
-        corners: [
-          [-6.789244114610039, -43.04664373397827],
-          [- 6.789638297738738, -43.0453884601593],
-          [- 6.7880136219556775, -43.04614484310151],
-          [- 6.7883492111733945, -43.044970035552986]
-        ],
-      });
-      setImages(
-        [image]
-      )
+      const image = L.distortableImageOverlay(
+        "https://img.icons8.com/?size=512&id=qoqMqJIcwz6V&format=png",
+        {
+          actions: defaultActions.map((action) => action.class),
+          corners: [
+            [-6.789244114610039, -43.04664373397827],
+            [-6.789638297738738, -43.0453884601593],
+            [-6.7880136219556775, -43.04614484310151],
+            [-6.7883492111733945, -43.044970035552986],
+          ],
+        }
+      );
+      setImages([image]);
     }
-
-  }, [images])
+  }, [images]);
 
   return (
     <div
@@ -114,12 +113,19 @@ function App() {
           attribution='&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
           url="https://1.aerial.maps.ls.hereapi.com/maptile/2.1/maptile/newest/satellite.day/{z}/{x}/{y}/256/png8?app_id=Xf717WLh23vibGrY2VdK&app_code=onhDRdp6818gjOCVn925eg"
         />
-        {images && <DistortableImageOverlay images={images} />}
+        {images && (
+          <DistortableImageOverlay
+            images={images}
+            groupedImages={groupedImages}
+          />
+        )}
 
         {enableOnMapClick && <LocationMarker />}
         {newImageCoorners &&
           newImageCoorners.length > 0 &&
-          newImageCoorners.map((nc) => <Marker position={nc}></Marker>)}
+          newImageCoorners.map((nc, index) => (
+            <Marker position={nc} key={index}></Marker>
+          ))}
       </MapContainer>
       <div
         style={{
@@ -134,53 +140,20 @@ function App() {
         <input type="url" name="url" id="url" />
         <p>ações</p>
         <label>
-          <input type="checkbox" name="actions[]-all" value="L.DragAction" />{" "}
+          <input type="checkbox" name="actions[]-all" value="L.DragAction" />
           Todos
         </label>
-        <label>
-          <input type="checkbox" name="actions[]" value="L.DragAction" />{" "}
-          L.DragAction
-        </label>
-        <label>
-          <input type="checkbox" name="actions[]" value="L.ScaleAction" />{" "}
-          L.ScaleAction
-        </label>
-        <label>
-          <input type="checkbox" name="actions[]" value="L.DistortAction" />{" "}
-          L.DistortAction
-        </label>
-        <label>
-          <input type="checkbox" name="actions[]" value="L.RotateAction" />{" "}
-          L.RotateAction
-        </label>
-        <label>
-          <input type="checkbox" name="actions[]" value="L.FreeRotateAction" />{" "}
-          L.FreeRotateAction
-        </label>
-        <label>
-          <input type="checkbox" name="actions[]" value="L.LockAction" />{" "}
-          L.LockAction
-        </label>
-        <label>
-          <input type="checkbox" name="actions[]" value="L.OpacityAction" />{" "}
-          L.OpacityAction
-        </label>
-        <label>
-          <input type="checkbox" name="actions[]" value="L.BorderAction" />{" "}
-          L.BorderAction
-        </label>
-        <label>
-          <input type="checkbox" name="actions[]" value="L.ExportAction" />{" "}
-          L.ExportAction
-        </label>
-        <label>
-          <input type="checkbox" name="actions[]" value="L.DeleteAction" />{" "}
-          L.DeleteAction
-        </label>
-        <label>
-          <input type="checkbox" name="actions[]" value="L.RestoreAction" />{" "}
-          L.RestoreAction
-        </label>
+        {checkboxTypes.map((checkboxType, index) => (
+          <label htmlFor={`actions[]-${checkboxType}`} key={index}>
+            <input
+              type="checkbox"
+              name="actions[]"
+              value={checkboxType}
+              id={`actions[]-${checkboxType}`}
+            />
+            {checkboxType}
+          </label>
+        ))}
         <br />
         <button
           onClick={() => {
@@ -227,17 +200,40 @@ function App() {
           }}
         />
         <br />
-        <button onClick={() => {
-          setShowActualImageCoorners(prev => !prev);
-        }}>Exibir  novas posições das imagens</button>
-        {showActualImageCoorners && <pre>
-          <code>{images && JSON.stringify(images.map(image => {
-            return {
-              url: image._url,
-              corners: image.getCorners()
-            }
-          }), null, 2)}</code>
-        </pre>}
+        <button
+          onClick={() => {
+            setShowActualImageCoorners((prev) => !prev);
+          }}
+        >
+          Exibir novas posições das imagens
+        </button>
+        {groupedImages && showActualImageCoorners && (
+          <pre>
+            <code>
+              {groupedImages.getLayers().map((layer, index) => {
+                if (layer._events.remove.length > 0) {
+                  return (
+                    <>
+                      <p
+                        style={{
+                          wordBreak: "break-all",
+                          whiteSpace: "normal",
+                        }}
+                        key={index}
+                      >
+                        id: {layer._leaflet_id}
+                        <br></br>
+                        corners: {JSON.stringify(layer.getCorners())}
+                      </p>
+                    </>
+                  );
+                } else {
+                  return null;
+                }
+              })}
+            </code>
+          </pre>
+        )}
       </div>
     </div>
   );
